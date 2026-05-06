@@ -1,0 +1,75 @@
+name: Eval Stack CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+    paths:
+      - "evals/**"
+      - "tests/**"
+      - "pyproject.toml"
+
+jobs:
+  eval-ci:
+    name: Run 3-Layer Eval Stack
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install -e ".[dev]"
+          python -m nltk.downloader punkt 2>/dev/null || true
+
+      # ── Layer 1: Ground Truth — no API key needed, always runs ────────────
+      - name: "[Layer 1] Ground Truth — Dataset validation & metrics"
+        run: pytest tests/test_layer1_ground_truth.py -m layer1 -v --tb=short
+
+      # ── Layer 2: Code evaluators — no API key needed ───────────────────────
+      - name: "[Layer 2] Code Evaluators — Deterministic checks"
+        run: pytest tests/test_layer2_judgment.py -m "layer2 and not integration" -v --tb=short
+
+      # ── Layer 2: Human review queue ────────────────────────────────────────
+      - name: "[Layer 2] Human Review Queue"
+        run: pytest tests/test_layer2_judgment.py -k "HumanReview" -v --tb=short
+
+      # ── Layer 3: Feedback loop ─────────────────────────────────────────────
+      - name: "[Layer 3] Feedback Loops — Collector, Analyzer, Updater"
+        run: pytest tests/test_layer3_feedback.py -m layer3 -v --tb=short
+
+      # ── Layer 2: LLM-as-Judge integration (only if API key is present) ─────
+      - name: "[Layer 2] LLM Judge — Integration (skipped if no API key)"
+        if: env.ANTHROPIC_API_KEY != ''
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: pytest tests/test_layer2_judgment.py -m integration -v --tb=short
+
+      # ── Golden set governance checks ───────────────────────────────────────
+      - name: "[Layer 1] Golden set governance — All entries have owners"
+        run: |
+          python -c "
+          from evals.layer1_ground_truth.dataset import GoldenDataset
+          ds = GoldenDataset.load()
+          no_owner = [e.id for e in ds if not e.owner]
+          if no_owner:
+              print(f'FAIL: Entries missing owner: {no_owner}')
+              exit(1)
+          print(f'PASS: All {len(ds)} entries have owners')
+          "
+
+      - name: Coverage report
+        run: |
+          pytest tests/ -m "not integration" --cov=evals --cov-report=term-missing --cov-fail-under=80
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        if: always()
+        continue-on-error: true
