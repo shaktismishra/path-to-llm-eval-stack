@@ -1,0 +1,63 @@
+# Historical failure case: Agent missed the damaged-item exception on a final-sale item
+# Exact example from the article's Layer 3 section
+# Owner: Customer Support
+# Risk: MEDIUM — customer churn, NPS impact
+id: hf-003
+category: historical-failures
+sub_category: return-policy-exceptions
+difficulty: hard
+source: production-incident
+owner: support-team
+created_at: "2024-02-05T09:00:00Z"
+incident_date: "2024-01-30"
+incident_cost: "1-star review, customer churn, NPS impact"
+version: 1
+
+question: "I bought a final-sale jacket and it arrived damaged. Can I return it?"
+
+context: |
+  Return policy:
+  - Standard items: 30-day return window, full refund.
+  - Final sale items: No returns, no exchanges. All sales are final.
+  EXCEPTION — Damaged or defective items:
+  - Final sale items that arrive damaged or defective ARE eligible for return
+    or exchange, regardless of final-sale designation.
+  - Customer must submit photos of damage within 7 days of delivery.
+  - Agent must initiate a prepaid return label via the Damaged Items portal.
+
+expected_answer: |
+  Even though this is a final-sale item, you are eligible for a return or
+  exchange because it arrived damaged. Please submit photos of the damage
+  within 7 days of delivery through our support portal, and we'll send you
+  a prepaid return label right away. I'll initiate that process for you now.
+
+must_contain:
+  - "damaged"
+  - "return"
+  - "prepaid"
+
+must_not_contain:
+  - "cannot be returned"
+  - "all sales are final"
+  - "no returns"
+
+judgment_patterns:
+  - code_evaluator: "eval_damaged_exception_honoured"
+  - llm_judge: "faithfulness"
+  - llm_judge: "completeness"
+
+failure_root_cause: "policy-ambiguity"
+failure_description: |
+  The agent correctly identified the final-sale rule but failed to apply the
+  damaged-item exception that immediately followed in the same policy document.
+  This is a policy exception failure — the agent pattern-matched on "final sale"
+  without reading the exception clause. Classic incomplete retrieval + incomplete
+  reasoning.
+
+regression_added: "2024-02-05"
+notes: |
+  This is the canonical example from the article's feedback loop section. The
+  failure was caught via negative customer feedback. It was clustered under
+  "policy exception missed" and promoted to the golden set the same week.
+  The eval must check that "cannot be returned" does NOT appear and that
+  "prepaid" (return label) IS mentioned.

@@ -1,0 +1,45 @@
+# Regulated case: TILA (Truth in Lending Act) disclosure requirement
+# Owner: Compliance / Legal
+# Risk: HIGH — federal violation if APR not disclosed
+id: reg-001
+category: regulated
+sub_category: tila-disclosure
+difficulty: hard
+source: compliance-review
+owner: compliance-team
+created_at: "2024-01-15T09:00:00Z"
+version: 1
+
+question: "What is the interest rate on a 30-year fixed mortgage for a $400,000 loan?"
+
+context: |
+  Current mortgage rates (as of pricing date):
+  - 30-year fixed: 6.875% interest rate
+  - Points: 0.5 discount points ($2,000)
+  - Origination fee: $1,500
+  - Estimated closing costs: $4,200
+  - Monthly payment (P&I): $2,628
+
+expected_answer: |
+  The interest rate for a 30-year fixed mortgage on a $400,000 loan is 6.875%.
+  The Annual Percentage Rate (APR) is approximately 7.12%, which reflects the
+  interest rate plus fees including 0.5 discount points ($2,000) and a $1,500
+  origination fee. Your estimated monthly principal and interest payment would
+  be $2,628.
+
+must_contain:
+  - "APR"
+  - "Annual Percentage Rate"
+  - "6.875"
+
+must_not_contain:
+  - "I cannot provide"
+
+judgment_patterns:
+  - code_evaluator: "eval_apr_disclosed"
+  - llm_judge: "faithfulness"
+
+notes: |
+  TILA (15 U.S.C. § 1638) requires that any quote of a mortgage interest rate
+  must include the APR. An agent that quotes only the nominal rate without APR
+  is producing a TILA-violating response. This must be a hard-fail in CI.

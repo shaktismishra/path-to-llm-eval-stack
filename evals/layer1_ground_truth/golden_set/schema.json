@@ -1,0 +1,49 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "GoldenEntry",
+  "description": "A single entry in the RAG Q&A golden dataset",
+  "type": "object",
+  "required": ["id", "question", "context", "expected_answer"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique identifier for this golden example, e.g. 'gt-001'"
+    },
+    "question": {
+      "type": "string",
+      "description": "The user question posed to the RAG system"
+    },
+    "context": {
+      "type": "string",
+      "description": "The retrieved context chunk(s) that should ground the answer"
+    },
+    "expected_answer": {
+      "type": "string",
+      "description": "The ideal correct answer, used as ground truth"
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Optional tags for categorising the example, e.g. ['multi-hop', 'negation', 'numerical']"
+    },
+    "difficulty": {
+      "type": "string",
+      "enum": ["easy", "medium", "hard"],
+      "description": "Subjective difficulty level of the example"
+    },
+    "source": {
+      "type": "string",
+      "description": "Where this golden example came from: 'human', 'synthetic', 'promoted_from_production'"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 timestamp when this entry was created"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Any additional metadata (document_id, chunk_id, etc.)"
+    }
+  },
+  "additionalProperties": false
+}

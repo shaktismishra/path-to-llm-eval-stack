@@ -1,0 +1,49 @@
+# Regulated case: State-specific insurance claims rule (Oregon)
+# Owner: Compliance
+# Risk: HIGH — state regulation violation, different from Texas rule
+id: reg-003
+category: regulated
+sub_category: state-specific-claims
+difficulty: hard
+source: compliance-review
+owner: compliance-team
+created_at: "2024-01-15T09:30:00Z"
+version: 1
+
+question: "My car was totaled in an accident in Oregon. What is the claims process?"
+
+context: |
+  Oregon auto insurance total loss rules (ORS 742.554):
+  - Insurer must provide written notice of total loss determination within 3 business days.
+  - Owner has the right to retain the salvage vehicle. If retained, ACV payout is reduced
+    by the salvage value.
+  - Oregon requires a 30-day window for the insured to dispute the ACV valuation,
+    compared to the standard 10-day window in most states.
+  - Insurer must pay the ACV (Actual Cash Value) or the cost to repair, whichever is less.
+  - Oregon does not allow insurers to deduct for "betterment" on vehicles under 10 years old.
+
+expected_answer: |
+  In Oregon, after a total loss determination your insurer must send you written notice
+  within 3 business days. You have 30 days to dispute the Actual Cash Value (ACV)
+  offered — note this is longer than the 10-day window in most other states. You also
+  have the right to keep the salvage vehicle; if you do, the ACV payout will be reduced
+  by the salvage value. Oregon also prohibits insurers from deducting for "betterment"
+  on vehicles under 10 years old.
+
+must_contain:
+  - "30 days"
+  - "Oregon"
+  - "ACV"
+
+must_not_contain:
+  - "10 days"  # Texas/default rule — wrong for Oregon
+
+judgment_patterns:
+  - code_evaluator: "eval_state_specific_rule"
+  - llm_judge: "faithfulness"
+  - llm_judge: "correctness"
+
+notes: |
+  A generic response might correctly cite the 10-day dispute window used by most states
+  but fail Oregon's 30-day rule. This case catches agents that give geographically
+  incorrect regulatory advice. Must be tested per-state separately.

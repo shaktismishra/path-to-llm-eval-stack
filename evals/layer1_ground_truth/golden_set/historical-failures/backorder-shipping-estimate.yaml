@@ -1,0 +1,63 @@
+# Historical failure case: Agent gave wrong shipping estimate for backordered item
+# Converted from production incident — 14 follow-up tickets created
+# Owner: Customer Support / Product
+# Risk: MEDIUM — customer trust, repeat ticket volume
+id: hf-001
+category: historical-failures
+sub_category: shipping-estimates
+difficulty: medium
+source: production-incident
+owner: support-team
+created_at: "2024-01-20T14:00:00Z"
+incident_date: "2024-01-08"
+incident_cost: "14 follow-up tickets, ~2.3 CSAT impact"
+version: 1
+
+question: "When will my order #ORD-88421 for the Apex Pro Jacket arrive?"
+
+context: |
+  Order ORD-88421:
+  - Product: Apex Pro Jacket (SKU: APX-PRO-M-BLK)
+  - Status: BACKORDERED
+  - Backorder reason: Supplier delay
+  - Estimated restock date: 2024-02-10
+  - Order placed: 2024-01-06
+  - Shipping method selected: Standard (3-5 business days after dispatch)
+  - Current date: 2024-01-08
+  Inventory system note: "Do not promise delivery before 2024-02-15."
+
+expected_answer: |
+  Your Apex Pro Jacket (order #ORD-88421) is currently on backorder due to a
+  supplier delay. It is expected to be back in stock around February 10, 2024,
+  and with standard shipping (3–5 business days), you should receive it around
+  February 15, 2024. We apologize for the delay. You'll receive a shipping
+  confirmation email as soon as it dispatches.
+
+must_contain:
+  - "backorder"
+  - "February"
+
+must_not_contain:
+  - "2 days"
+  - "3 days"
+  - "this week"
+  - "tomorrow"
+
+judgment_patterns:
+  - code_evaluator: "eval_no_optimistic_delivery_date"
+  - llm_judge: "faithfulness"
+  - llm_judge: "correctness"
+
+failure_root_cause: "missing-context"
+failure_description: |
+  The agent saw the standard shipping option (3-5 business days) in the order
+  record and calculated an arrival date from the order date, ignoring the
+  BACKORDERED status and the inventory note. This is a retrieval/context
+  comprehension failure — the right information existed but was not used.
+
+regression_added: "2024-01-12"
+notes: |
+  This is the canonical example from the article. The agent promised 2-day
+  delivery for a 3-week backordered item. Do not waste failures. Convert them
+  into regression tests. This case must block any deployment where the agent
+  ignores inventory status.

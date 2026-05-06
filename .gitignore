@@ -1,0 +1,12 @@
+.env
+__pycache__/
+*.pyc
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.coverage
+htmlcov/
+reports/*.html
+evals/layer3_feedback/storage/feedback_log.jsonl
+evals/layer2_judgment/human_review/review_queue.jsonl

@@ -1,0 +1,54 @@
+# Historical failure case: Agent gave wrong benefits enrollment deadline
+# 3 employees missed open enrollment as a result
+# Owner: HR / Benefits
+# Risk: HIGH — employees lost benefits coverage for a full year
+id: hf-002
+category: historical-failures
+sub_category: benefits-enrollment
+difficulty: hard
+source: production-incident
+owner: hr-team
+created_at: "2024-01-22T10:00:00Z"
+incident_date: "2023-11-03"
+incident_cost: "3 employees missed open enrollment, legal review required"
+version: 1
+
+question: "When is the deadline to complete open enrollment for this year?"
+
+context: |
+  Benefits enrollment system (current record as of 2023-11-01):
+  Open enrollment period: October 15, 2023 – November 3, 2023
+  Enrollment deadline: November 3, 2023 at 11:59 PM ET
+  NOTE: This year's deadline was moved up by 2 weeks from the prior year
+  due to the transition to the new benefits provider (Aetna).
+  Prior year deadline (2022): November 17, 2022
+
+expected_answer: |
+  The open enrollment deadline this year is November 3, 2023 at 11:59 PM ET.
+  Please note this deadline is two weeks earlier than last year (November 17)
+  due to the transition to our new benefits provider, Aetna. Make sure to
+  complete your elections before tonight.
+
+must_contain:
+  - "November 3"
+
+must_not_contain:
+  # Note: "November 17" is intentionally NOT forbidden here — the expected answer
+  # correctly references it as the PRIOR year's date for contrast. The must_contain
+  # check on "November 3" is the hard gate. The LLM judge checks correctness.
+  # A response that ONLY says "November 17" (without "November 3") will fail
+  # the must_contain gate and the correctness rubric.
+  []
+
+judgment_patterns:
+  - code_evaluator: "eval_enrollment_deadline_exact"
+  - llm_judge: "correctness"
+  - human_review: true   # HR escalation flag
+
+failure_root_cause: "stale-knowledge"
+failure_description: |
+  The agent retrieved the prior-year deadline (November 17) from historical
+  records rather than the current-year record. The context contained both
+  dates; the agent chose the wrong one. This is a temporal reasoning failure:
+  the agent failed to identify that the current-year deadline was explicitly
+  marked as authorit
