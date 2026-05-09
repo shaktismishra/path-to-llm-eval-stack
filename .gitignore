@@ -1,12 +1,34 @@
-.env
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*.pyo
 *.egg-info/
 dist/
 build/
+.eggs/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Environment / secrets
+.env
+
+# Pytest / coverage
 .pytest_cache/
 .coverage
 htmlcov/
-reports/*.html
-evals/layer3_feedback/storage/feedback_log.jsonl
-evals/layer2_judgment/human_review/review_queue.jsonl
+
+# Generated reports (committed only when you explicitly want a snapshot)
+reports/
+
+# Layer 3 feedback log (runtime data – not source code)
+evals/layer3_feedback/storage/
+
+# macOS / Windows artefacts
+.DS_Store
+Thumbs.db
+
+# Claude Code internal state
+.claude/

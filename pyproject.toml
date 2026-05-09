@@ -5,49 +5,29 @@ build-backend = "setuptools.backends.legacy:build"
 [project]
 name = "llm-eval-stack"
 version = "0.1.0"
-description = "Production-ready 3-layer eval stack for RAG Q&A systems"
+description = "3-layer LLM evaluation stack – FAQ Knowledge Base Bot"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 dependencies = [
-    "anthropic>=0.28.0",
-    "pytest>=8.0.0",
-    "pytest-asyncio>=0.23.0",
-    "python-dotenv>=1.0.0",
-    "pydantic>=2.6.0",
-    "rouge-score>=0.1.2",
-    "nltk>=3.8.0",
-    "rich>=13.7.0",
-    "jsonlines>=4.0.0",
-    "tenacity>=8.2.0",
-    "typer>=0.12.0",
+    "pyyaml>=6.0",
+    "anthropic>=0.40",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest-cov>=5.0.0",
-    "ruff>=0.4.0",
-    "mypy>=1.10.0",
-    "respx>=0.21.0",
+    "pytest>=8.0",
+    "pytest-mock>=3.14",
 ]
 
 [project.scripts]
-eval-stack = "scripts.run_evals:app"
+run-evals = "run_evals:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["evals*"]
 
 [tool.pytest.ini_options]
-asyncio_mode = "auto"
 testpaths = ["tests"]
 markers = [
-    "layer1: Layer 1 ground truth tests",
-    "layer2: Layer 2 LLM-as-judge tests",
-    "layer3: Layer 3 feedback loop tests",
-    "integration: Integration tests (require ANTHROPIC_API_KEY)",
-    "slow: Slow tests",
+    "integration: requires ANTHROPIC_API_KEY (deselect with -m 'not integration')",
 ]
-addopts = "-v --tb=short"
-
-[tool.ruff]
-line-length = 100
-target-version = "py311"
-
-[tool.ruff.lint]
-select = ["E", "F", "I", "UP"]

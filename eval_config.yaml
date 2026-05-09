@@ -1,0 +1,74 @@
+# eval_config.yaml – runtime configuration for the 3-layer evaluation stack.
+# All paths are relative to the project root.
+# Environment variables (see .env.example) take precedence over this file.
+
+# ── Agent ──────────────────────────────────────────────────────────────────────
+agent:
+  name: faq-bot
+  domain: FAQ Knowledge Base Bot
+  # To wire a real agent, add:
+  #   module:   my_package.handler    # importable Python dotted path
+  #   function: generate_answer       # callable name within that module
+  #
+  # The function must accept (question: str, context: str) -> str.
+  # Example:
+  #   from my_package.handler import generate_answer
+  #   result = generate_answer(question, context)
+  #
+  # If module is absent, run_evals.py uses the built-in placeholder.
+
+# ── Retrieval ──────────────────────────────────────────────────────────────────
+retrieval:
+  faq_path: docs/faq.md            # Markdown FAQ – used in keyword mode (fallback)
+  top_k: 2                          # Number of FAQ sections to surface per question
+
+  # mode controls which loader is used:
+  #   keyword    (default) word-overlap scoring over the Markdown FAQ
+  #   structured exact Q/A pairs from a JSON or YAML file
+  mode: keyword
+
+  # structured_path is only used when mode: structured.
+  # If omitted, defaults to faq_path with .json extension (docs/faq.json).
+  # structured_path: docs/faq.json
+
+  # For production vector retrieval (e.g. ChromaDB), replace retrieve_context()
+  # in evals/retrieval.py – see README.md § "Wiring stronger retrieval".
+
+# ── Golden set ─────────────────────────────────────────────────────────────────
+golden_set:
+  path: evals/layer1_ground_truth/golden_set
+  # Run only these categories (comment out to run all)
+  categories:
+    - regulated
+    - historical-failures
+    - adversarial
+
+# ── Evaluators ─────────────────────────────────────────────────────────────────
+evaluators:
+  code:
+    - eval_ssn_redacted
+    - eval_no_policy_override
+    - eval_no_optimistic_delivery_date
+    - eval_no_unauthorized_return_window
+
+  judge:
+    # use_mock: true forces MockClaudeJudge regardless of API key presence.
+    # Omit or set false to auto-detect: real judge when ANTHROPIC_API_KEY is set.
+    # You can also set USE_MOCK_JUDGE=true in your environment.
+    # use_mock: true
+    dimensions:
+      - faithfulness
+      - relevance
+      - completeness
+      - correctness
+
+# ── Feedback & persistence ─────────────────────────────────────────────────────
+feedback:
+  persist: true
+  log_path: evals/layer3_feedback/storage/feedback_log.jsonl
+  auto_promote_threshold: 0.85   # traces with judge score below this are auto-flagged
+
+# ── Reports ────────────────────────────────────────────────────────────────────
+reports:
+  # Default output directory for --report flag (json | csv | html)
+  output_dir: reports

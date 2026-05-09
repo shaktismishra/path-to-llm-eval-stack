@@ -1,181 +1,94 @@
 """
-Layer 3 — Feedback Loop Part 3: Golden Set Updater (Compounding Loop).
+Golden set updater.
+Converts confirmed production failures into versioned YAML entries
+that become permanent regression tests in the golden set.
 
-Every confirmed failure becomes a new ground truth case.
-Same week. Versioned. Reviewed. Owned.
-
-The article's pipeline:
-  Failure detected Tuesday →
-    Clustered and root-caused Wednesday →
-      New eval case written Thursday →
-        Added to golden set and merged Friday →
-          Regression test runs in next deployment cycle
-
-This is the MOAT. Teams that promote production failures into regression
-tests compound their eval coverage. The golden set grows sharper every
-week the business runs.
-
-A failure that doesn't become a regression test will become a
-production incident again.
+"A failure that doesn't become a regression test will become a
+production incident again." — path-to-llm-eval-stack README
 """
 from __future__ import annotations
-
-import json
-import re
-from datetime import datetime, timezone
+import datetime
 from pathlib import Path
 
-import yaml
+from evals.config import GOLDEN_SET
 
-from evals.config import GOLDEN_SET_DIR
-from evals.layer3_feedback.analyzer import FailureAnalysis, FailureCluster
-from evals.layer3_feedback.collector import ProductionTrace
+_CATEGORY_MAP: dict[str, str] = {
+    "stale_knowledge":        "historical-failures",
+    "poor_reasoning":         "historical-failures",
+    "missing_context":        "historical-failures",
+    "bad_retrieval":          "historical-failures",
+    "tool_failure":           "historical-failures",
+    "weak_instructions":      "historical-failures",
+    "prompt_injection":       "adversarial",
+    "policy_exception_missed":"regulated",
+    "policy_ambiguity":       "regulated",
+}
 
-
-# Map failure clusters to golden set categories
-CLUSTER_TO_CATEGORY: dict[FailureCluster, str] = {
-    FailureCluster.MISSING_CONTEXT: "historical-failures",
-    FailureCluster.BAD_RETRIEVAL: "historical-failures",
-    FailureCluster.WEAK_INSTRUCTIONS: "historical-failures",
-    FailureCluster.TOOL_FAILURE: "historical-failures",
-    FailureCluster.POLICY_AMBIGUITY: "regulated",
-    FailureCluster.POOR_REASONING: "historical-failures",
-    FailureCluster.STALE_KNOWLEDGE: "historical-failures",
-    FailureCluster.POLICY_EXCEPTION_MISSED: "historical-failures",
-    FailureCluster.PROMPT_INJECTION: "adversarial",
-    FailureCluster.UNKNOWN: "historical-failures",
+_JUDGMENT_MAP: dict[str, list[str]] = {
+    "prompt_injection":       ["code_evaluator", "eval_no_policy_override"],
+    "policy_exception_missed":["code_evaluator", "human_review"],
+    "poor_reasoning":         ["code_evaluator", "llm_judge"],
 }
 
 
 class GoldenSetUpdater:
-    """
-    Promotes confirmed production failures into the governed golden set.
+    """Promotes confirmed production failures to golden-set YAML entries."""
 
-    This is the compounding part of the eval stack. Each confirmed failure
-    becomes a permanent regression test, so the same mistake cannot ship
-    again without triggering a CI failure.
+    def __init__(self, golden_set_path: Path = GOLDEN_SET):
+        self._path     = golden_set_path
+        self._promoted: list[dict] = []
 
-    Usage:
-        trace = ...         # Production trace that failed
-        analysis = ...      # FailureAnalysis from the Analyzer
-        updater = GoldenSetUpdater()
-        path = updater.promote(trace, analysis, correct_answer="...", owner="support-team")
-        print(f"New golden entry written: {path}")
-    """
-
-    def __init__(self, golden_set_dir: Path = GOLDEN_SET_DIR) -> None:
-        self.golden_set_dir = golden_set_dir
-
-    def promote(
-        self,
-        trace: ProductionTrace,
-        analysis: FailureAnalysis,
-        correct_answer: str,
-        owner: str,
-        must_contain: list[str] | None = None,
-        must_not_contain: list[str] | None = None,
-        notes: str = "",
-    ) -> Path:
+    def promote(self, trace, correct_answer: str, write: bool = False) -> dict:
         """
-        Convert a confirmed production failure into a new golden set entry (YAML).
+        Build a golden-set entry from a production trace.
 
-        The YAML file is written to the appropriate sub-directory and is ready
-        to be committed via a pull request. PR review IS the human sign-off.
-
-        Returns the path to the newly written YAML file.
+        Args:
+            trace:          ProductionTrace with failure_cluster set.
+            correct_answer: Human-validated correct answer.
+            write:          When True, write the entry as a YAML file under
+                            golden_set/<category>/<id>.yaml for PR review.
         """
-        category = CLUSTER_TO_CATEGORY[analysis.cluster]
-        entry_id = self._next_id(category)
-        slug = self._slugify(trace.question)[:50]
-        filename = f"{entry_id}-{slug}.yaml"
-        output_path = self.golden_set_dir / category / filename
-
-        judgment_patterns = self._default_judgment_patterns(analysis.cluster)
-        if must_contain:
-            judgment_patterns.append({"code_evaluator": "eval_must_contain_custom"})
-        if must_not_contain:
-            judgment_patterns.append({"code_evaluator": "eval_must_not_contain_custom"})
-
+        cluster  = trace.failure_cluster or "missing_context"
+        category = _CATEGORY_MAP.get(cluster, "historical-failures")
+        idx      = len(self._promoted) + 1
+        prefix   = {"historical-failures": "hf",
+                    "regulated": "reg",
+                    "adversarial": "adv"}[category]
+        patterns = _JUDGMENT_MAP.get(cluster, ["code_evaluator", "llm_judge"])
+        context_snip = (trace.context[:120] + "...") if len(trace.context) > 120 else trace.context
         entry = {
-            "id": entry_id,
-            "category": category,
-            "sub_category": analysis.cluster.value,
-            "difficulty": "medium",
-            "source": "promoted_from_production",
-            "owner": owner,
-            "created_at": datetime.now(timezone.utc).isoformat(),
-            "version": 1,
-            "question": trace.question,
-            "context": trace.context,
-            "expected_answer": correct_answer,
-            "must_contain": must_contain or [],
-            "must_not_contain": must_not_contain or [],
-            "judgment_patterns": judgment_patterns,
-            "failure_root_cause": analysis.cluster.value,
-            "failure_description": analysis.description,
-            "incident_cost": f"Production trace {trace.trace_id} — feedback: {trace.feedback_signal.value}",
-            "regression_added": datetime.now(timezone.utc).date().isoformat(),
-            "original_trace_id": trace.trace_id,
-            "notes": notes or (
-                f"Promoted from production failure. Root cause: {analysis.cluster.value}. "
-                f"Recommended action: {analysis.recommended_action}"
-            ),
+            "id":               f"{prefix}-{idx:03d}",
+            "category":         category,
+            "owner":            "faq-team",
+            "question":         trace.question,
+            "context":          context_snip,
+            "expected_answer":  correct_answer,
+            "root_cause":       cluster,
+            "promoted_from":    trace.trace_id,
+            "promoted_at":      datetime.date.today().isoformat(),
+            "judgment_patterns": patterns,
         }
+        self._promoted.append(entry)
+        if write:
+            self._write_yaml(entry, category)
+        return entry
 
-        with output_path.open("w") as f:
-            yaml.dump(entry, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
+    def _write_yaml(self, entry: dict, category: str):
+        out_dir = self._path / category
+        out_dir.mkdir(parents=True, exist_ok=True)
+        out_file = out_dir / f"{entry['id']}.yaml"
+        with open(out_file, "w", encoding="utf-8") as f:
+            f.write(self.to_yaml_str(entry))
 
-        return output_path
-
-    def _next_id(self, category: str) -> str:
-        """Generate the next sequential ID for a category (e.g. hf-004, adv-003)."""
-        prefix_map = {
-            "regulated": "reg",
-            "historical-failures": "hf",
-            "adversarial": "adv",
-        }
-        prefix = prefix_map.get(category, "unk")
-        existing = list((self.golden_set_dir / category).glob("*.yaml"))
-        # Find the highest existing number
-        numbers = []
-        for p in existing:
-            m = re.search(rf"{prefix}-(\d+)", p.stem)
-            if m:
-                numbers.append(int(m.group(1)))
-        next_num = (max(numbers) + 1) if numbers else 1
-        return f"{prefix}-{next_num:03d}"
-
-    def _slugify(self, text: str) -> str:
-        text = text.lower()
-        text = re.sub(r"[^a-z0-9]+", "-", text)
-        return text.strip("-")
-
-    def _default_judgment_patterns(self, cluster: FailureCluster) -> list[dict]:
-        """Suggest sensible default judgment patterns based on cluster type."""
-        if cluster == FailureCluster.PROMPT_INJECTION:
-            return [
-                {"code_evaluator": "eval_no_policy_override"},
-                {"llm_judge": "faithfulness"},
-            ]
-        elif cluster == FailureCluster.POLICY_EXCEPTION_MISSED:
-            return [
-                {"code_evaluator": "eval_damaged_exception_honoured"},
-                {"llm_judge": "faithfulness"},
-                {"llm_judge": "completeness"},
-            ]
-        elif cluster == FailureCluster.POLICY_AMBIGUITY:
-            return [
-                {"llm_judge": "faithfulness"},
-                {"llm_judge": "correctness"},
-                {"human_review": True},
-            ]
-        elif cluster in (FailureCluster.MISSING_CONTEXT, FailureCluster.STALE_KNOWLEDGE):
-            return [
-                {"llm_judge": "faithfulness"},
-                {"llm_judge": "correctness"},
-            ]
-        else:
-            return [
-                {"llm_judge": "faithfulness"},
-                {"llm_judge": "relevance"},
-            ]
+    @staticmethod
+    def to_yaml_str(entry: dict) -> str:
+        lines = ["---"]
+        for k, v in entry.items():
+            if isinstance(v, list):
+                lines.append(f"{k}:")
+                for item in v:
+                    lines.append(f"  - {item}")
+            else:
+                escaped = str(v).replace("'", "''")
+                lines.append(f"{k}: '{escaped}'")
+        return "\n".join(lines)

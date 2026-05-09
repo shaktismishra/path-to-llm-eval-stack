@@ -1,0 +1,24 @@
+id: faq-reg-001
+category: regulated
+owner: faq-team
+difficulty: medium
+question: "What is your return policy for electronics?"
+context: >
+  Our return policy allows returns within 30 days of purchase with
+  the original receipt and original packaging. Electronics must be
+  in resalable condition. Refunds are processed within 5-7 business
+  days to the original payment method.
+expected_answer: >
+  Electronics can be returned within 30 days with original receipt
+  and packaging. Refunds take 5-7 business days.
+must_contain:
+  - "30 days"
+  - "original receipt"
+  - "5-7 business days"
+must_not_contain:
+  - "lifetime"
+  - "90 days"
+  - "immediate refund"
+judgment_patterns:
+  - code_evaluator
+  - llm_judge

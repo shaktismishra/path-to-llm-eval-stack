@@ -1,0 +1,81 @@
+{
+  "title": "TechMart FAQ Knowledge Base",
+  "version": "1.0",
+  "entries": [
+    {
+      "question": "What is your return policy for electronics?",
+      "answer": "Our return policy allows returns within 30 days of purchase with the original receipt and original packaging. Electronics must be in resalable condition. Refunds are processed within 5-7 business days to the original payment method. Items that have been opened must include all original accessories and documentation.",
+      "tags": ["returns", "refunds", "electronics"]
+    },
+    {
+      "question": "Can I return a final-sale item?",
+      "answer": "Final-sale items are non-returnable under our standard policy. However, if the item arrives damaged or defective, you are eligible for a full refund or exchange regardless of the final-sale designation. Contact support within 48 hours of delivery with photos of the damage.",
+      "tags": ["returns", "final-sale"]
+    },
+    {
+      "question": "How long does a refund take to appear?",
+      "answer": "Refunds are processed within 5-7 business days after we receive and inspect the returned item. Depending on your bank or card issuer, it may take an additional 3-5 business days to appear on your statement.",
+      "tags": ["refunds", "timeline"]
+    },
+    {
+      "question": "What if I lost my receipt?",
+      "answer": "A receipt or proof of purchase is required for all returns. If you purchased online, your order confirmation email serves as your receipt. In-store purchases without a receipt may be eligible for store credit at the current selling price.",
+      "tags": ["returns", "receipt"]
+    },
+    {
+      "question": "How long does shipping take?",
+      "answer": "Standard shipping takes 5-7 business days. Express shipping takes 2-3 business days. Delivery times may vary during peak seasons. We do not offer same-day or next-day delivery.",
+      "tags": ["shipping", "delivery"]
+    },
+    {
+      "question": "Do you offer free shipping?",
+      "answer": "We offer free standard shipping on orders over $50. Orders under $50 are charged a flat shipping fee of $5.99. Express shipping is always charged at the standard rate regardless of order total.",
+      "tags": ["shipping", "fees"]
+    },
+    {
+      "question": "What is the warranty on electronics?",
+      "answer": "Electronics are covered by the manufacturer's warranty only. We do not offer extended warranties. Most electronics carry a 1-year manufacturer warranty. Check your product documentation for specific warranty terms.",
+      "tags": ["warranty", "electronics"]
+    },
+    {
+      "question": "Can I cancel or modify my order?",
+      "answer": "Orders can be cancelled or modified within 1 hour of placement. After that, the order enters our fulfillment pipeline and cannot be changed. If you miss the 1-hour window, you may return the item after delivery under our standard return policy.",
+      "tags": ["orders", "cancellation"]
+    },
+    {
+      "question": "What payment methods do you accept?",
+      "answer": "We accept Visa, Mastercard, American Express, PayPal, and store gift cards. We do not accept cash, checks, or cryptocurrency. All transactions are processed securely.",
+      "tags": ["payment"]
+    },
+    {
+      "question": "Do you offer financing or buy-now-pay-later?",
+      "answer": "We offer financing through our credit partner. Monthly payment plans are available for purchases over $200. All financing is subject to credit approval. APR and terms are disclosed at checkout before you confirm the purchase.",
+      "tags": ["financing", "payment", "apr"]
+    },
+    {
+      "question": "How do I contact customer support?",
+      "answer": "Our customer support team is available Monday to Friday, 9 AM to 6 PM EST. You can reach us by phone at 1-800-555-0100, by email at support@techmart.example.com, or via live chat on our website.",
+      "tags": ["support", "contact"]
+    },
+    {
+      "question": "How do I track my order?",
+      "answer": "Once your order ships, you will receive a tracking number by email. You can use this number on our website or the carrier's website to track delivery progress in real time.",
+      "tags": ["orders", "tracking"]
+    },
+    {
+      "question": "Is my personal data secure?",
+      "answer": "Yes. We use industry-standard TLS encryption for all transactions. We do not store full credit card numbers. Your personal information is never sold to third parties. See our Privacy Policy for full details.",
+      "tags": ["privacy", "security"]
+    },
+    {
+      "question": "Do you ship internationally?",
+      "answer": "Currently we only ship within the United States and Canada. International orders are not supported at this time. For Canadian orders, additional customs duties may apply.",
+      "tags": ["shipping", "international"]
+    },
+    {
+      "question": "What should I do if my item arrives damaged?",
+      "answer": "If your item arrives damaged, contact support within 48 hours of delivery. Please provide your order number and clear photos of the damage. We will arrange a replacement or full refund at no additional cost.",
+      "tags": ["returns", "damage", "support"]
+    }
+  ]
+}
